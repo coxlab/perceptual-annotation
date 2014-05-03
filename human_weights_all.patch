@@ -1,0 +1,542 @@
+diff -cr libsvm-3.14/python/svmutil.py libsvm-3.14/python/svmutil.py
+*** libsvm-3.14/python/svmutil.py  2012-07-20 04:13:04.000000000 -0400
+--- libsvm-3.14/python/svmutil.py	2013-05-09 11:08:19.000000000 -0400
+***************
+*** 1,8 ****
+  #!/usr/bin/env python
+  
+  from svm import *
+  
+! def svm_read_problem(data_file_name):
+  	"""
+  	svm_read_problem(data_file_name) -> [y, x]
+  
+--- 1,10 ----
+  #!/usr/bin/env python
+  
+  from svm import *
++ from ctypes import *
++ from ctypes.util import find_library
+  
+! def svm_read_problem(data_file_name, weights_file_name):
+  	"""
+  	svm_read_problem(data_file_name) -> [y, x]
+  
+***************
+*** 11,16 ****
+--- 13,19 ----
+  	"""
+  	prob_y = []
+  	prob_x = []
++ 	deep_weights = []
+  	for line in open(data_file_name):
+  		line = line.split(None, 1)
+  		# In case an instance with all zero features
+***************
+*** 22,28 ****
+  			xi[int(ind)] = float(val)
+  		prob_y += [float(label)]
+  		prob_x += [xi]
+! 	return (prob_y, prob_x)
+  
+  def svm_load_model(model_file_name):
+  	"""
+--- 25,35 ----
+  			xi[int(ind)] = float(val)
+  		prob_y += [float(label)]
+  		prob_x += [xi]
+! 
+! 	for line in open(weights_file_name):
+! 		deep_weights += [float(line)]
+! 
+! 	return (prob_y, prob_x, deep_weights)
+  
+  def svm_load_model(model_file_name):
+  	"""
+***************
+*** 74,80 ****
+  		SCC = float('nan')
+  	return (ACC, MSE, SCC)
+  
+! def svm_train(arg1, arg2=None, arg3=None):
+  	"""
+  	svm_train(y, x [, 'options']) -> model | ACC | MSE 
+  	svm_train(prob, [, 'options']) -> model | ACC | MSE 
+--- 81,87 ----
+  		SCC = float('nan')
+  	return (ACC, MSE, SCC)
+  
+! def svm_train(arg1, arg2=None, arg3=None, arg4=None):
+  	"""
+  	svm_train(y, x [, 'options']) -> model | ACC | MSE 
+  	svm_train(prob, [, 'options']) -> model | ACC | MSE 
+***************
+*** 114,120 ****
+  	prob, param = None, None
+  	if isinstance(arg1, (list, tuple)):
+  		assert isinstance(arg2, (list, tuple))
+! 		y, x, options = arg1, arg2, arg3
+  		param = svm_parameter(options)
+  		prob = svm_problem(y, x, isKernel=(param.kernel_type == PRECOMPUTED))
+  	elif isinstance(arg1, svm_problem):
+--- 121,127 ----
+  	prob, param = None, None
+  	if isinstance(arg1, (list, tuple)):
+  		assert isinstance(arg2, (list, tuple))
+! 		y, x, deep_weights, options = arg1, arg2, arg3, arg4
+  		param = svm_parameter(options)
+  		prob = svm_problem(y, x, isKernel=(param.kernel_type == PRECOMPUTED))
+  	elif isinstance(arg1, svm_problem):
+***************
+*** 154,160 ****
+  			print("Cross Validation Accuracy = %g%%" % ACC)
+  			return ACC
+  	else:
+! 		m = libsvm.svm_train(prob, param)
+  		m = toPyModel(m)
+  
+  		# If prob is destroyed, data including SVs pointed by m can remain.
+--- 161,170 ----
+  			print("Cross Validation Accuracy = %g%%" % ACC)
+  			return ACC
+  	else:
+! 		num_weights = len(deep_weights)
+! 		deep_weights_conv = (c_double*num_weights)()
+! 		for i, wi in enumerate(deep_weights): deep_weights_conv[i] = wi
+! 		m = libsvm.svm_train(prob, param, deep_weights_conv)
+  		m = toPyModel(m)
+  
+  		# If prob is destroyed, data including SVs pointed by m can remain.
+diff -cr libsvm-3.14/svm.cpp libsvm-3.14/svm.cpp
+*** libsvm-3.14/svm.cpp	2012-10-01 21:41:17.000000000 -0400
+--- libsvm-3.14/svm.cpp	2013-05-09 11:20:57.000000000 -0400
+***************
+*** 7,14 ****
+--- 7,19 ----
+  #include <stdarg.h>
+  #include <limits.h>
+  #include <locale.h>
++ #include <fstream>
++ #include <iostream>
+  #include "svm.h"
+  int libsvm_version = LIBSVM_VERSION;
++ 
++ const float *weights;
++ 
+  typedef float Qfloat;
+  typedef signed char schar;
+  #ifndef min
+***************
+*** 58,63 ****
+--- 63,70 ----
+  static void info(const char *fmt,...) {}
+  #endif
+  
++ // #define DEBUG
++ 
+  //
+  // Kernel Cache
+  //
+***************
+*** 516,521 ****
+--- 523,533 ----
+  	this->eps = eps;
+  	unshrink = false;
+  
++         #ifdef DEBUG
++            printf("Cp: %f, Cn: %f\n", Cp, Cn);
++            printf("l: %d\n", l);
++         #endif
++ 
+  	// initialize alpha_status
+  	{
+  		alpha_status = new char[l];
+***************
+*** 543,549 ****
+  		}
+  		for(i=0;i<l;i++)
+  			if(!is_lower_bound(i))
+! 			{
+  				const Qfloat *Q_i = Q.get_Q(i,l);
+  				double alpha_i = alpha[i];
+  				int j;
+--- 555,564 ----
+  		}
+  		for(i=0;i<l;i++)
+  			if(!is_lower_bound(i))
+! 			{ 
+!                                 #ifdef DEBUG
+!                                    printf("call to get_Q, i: %d, l: %l\n", i, l);
+!                                 #endif
+  				const Qfloat *Q_i = Q.get_Q(i,l);
+  				double alpha_i = alpha[i];
+  				int j;
+***************
+*** 589,601 ****
+  		++iter;
+  
+  		// update alpha[i] and alpha[j], handle bounds carefully
+! 		
+  		const Qfloat *Q_i = Q.get_Q(i,active_size);
+  		const Qfloat *Q_j = Q.get_Q(j,active_size);
+  
+  		double C_i = get_C(i);
+  		double C_j = get_C(j);
+  
+  		double old_alpha_i = alpha[i];
+  		double old_alpha_j = alpha[j];
+  
+--- 604,630 ----
+  		++iter;
+  
+  		// update alpha[i] and alpha[j], handle bounds carefully
+! 
+!                 #ifdef DEBUG	
+!                    printf("optimization, call to get_Q, i: %d, active_size: %d\n", i, active_size);
+!                 #endif
+! 
+  		const Qfloat *Q_i = Q.get_Q(i,active_size);
++       
++                 #ifdef DEBUG 
++                    printf("optimization, call to get_Q, j: %d, active_size: %d\n", j, active_size);
++                 #endif
++ 
+  		const Qfloat *Q_j = Q.get_Q(j,active_size);
+  
+  		double C_i = get_C(i);
+  		double C_j = get_C(j);
+  
++                 // printf("in solver: C_i: %f, C_j: %f\n", C_i, C_j); 
++                 #ifdef DEBUG
++                    printf("alpha[i]: %f, alpha[j]: %f\n", alpha[i], alpha[j]);
++                 #endif
++ 
+  		double old_alpha_i = alpha[i];
+  		double old_alpha_j = alpha[j];
+  
+***************
+*** 1268,1289 ****
+  public:
+  	SVC_Q(const svm_problem& prob, const svm_parameter& param, const schar *y_)
+  	:Kernel(prob.l, prob.x, param)
+! 	{
+  		clone(y,y_,prob.l);
+  		cache = new Cache(prob.l,(long int)(param.cache_size*(1<<20)));
+  		QD = new double[prob.l];
+! 		for(int i=0;i<prob.l;i++)
+! 			QD[i] = (this->*kernel_function)(i,i);
+  	}
+  	
+  	Qfloat *get_Q(int i, int len) const
+  	{
+  		Qfloat *data;
+  		int start, j;
+  		if((start = cache->get_data(i,&data,len)) < len)
+  		{
+! 			for(j=start;j<len;j++)
+  				data[j] = (Qfloat)(y[i]*y[j]*(this->*kernel_function)(i,j));
+  		}
+  		return data;
+  	}
+--- 1297,1327 ----
+  public:
+  	SVC_Q(const svm_problem& prob, const svm_parameter& param, const schar *y_)
+  	:Kernel(prob.l, prob.x, param)
+! 	{   
+  		clone(y,y_,prob.l);
+  		cache = new Cache(prob.l,(long int)(param.cache_size*(1<<20)));
+  		QD = new double[prob.l];
+!                 this->C = param.C;
+! 		for(int i=0;i<prob.l;i++) {
+! 		   QD[i] = (this->*kernel_function)(i,i)+weights[i]/C;
+!                    printf("constructor: %d, %f\n", i, QD[i]); 
+!                 }
+  	}
+  	
+  	Qfloat *get_Q(int i, int len) const
+  	{
+  		Qfloat *data;
+  		int start, j;
++ 
+  		if((start = cache->get_data(i,&data,len)) < len)
+  		{
+! 			for(j=start;j<len;j++) {
+  				data[j] = (Qfloat)(y[i]*y[j]*(this->*kernel_function)(i,j));
++                                 printf("%d, %d, %f\n", i, j, data[j]); }
++                         if(i >= start && i < len) {
++                            data[i] += weights[i]/C;
++ 		           printf("--- %f\n", data[i]); 
++                         }
+  		}
+  		return data;
+  	}
+***************
+*** 1308,1313 ****
+--- 1346,1352 ----
+  		delete[] QD;
+  	}
+  private:
++         double C;
+  	schar *y;
+  	Cache *cache;
+  	double *QD;
+***************
+*** 1456,1462 ****
+  
+  	Solver s;
+  	s.Solve(l, SVC_Q(*prob,*param,y), minus_ones, y,
+! 		alpha, Cp, Cn, param->eps, si, param->shrinking);
+  
+  	double sum_alpha=0;
+  	for(i=0;i<l;i++)
+--- 1495,1501 ----
+  
+  	Solver s;
+  	s.Solve(l, SVC_Q(*prob,*param,y), minus_ones, y,
+! 		alpha, INF, INF, param->eps, si, param->shrinking);
+  
+  	double sum_alpha=0;
+  	for(i=0;i<l;i++)
+***************
+*** 1958,1964 ****
+  			subparam.weight_label[1]=-1;
+  			subparam.weight[0]=Cp;
+  			subparam.weight[1]=Cn;
+! 			struct svm_model *submodel = svm_train(&subprob,&subparam);
+  			for(j=begin;j<end;j++)
+  			{
+  				svm_predict_values(submodel,prob->x[perm[j]],&(dec_values[perm[j]])); 
+--- 1997,2003 ----
+  			subparam.weight_label[1]=-1;
+  			subparam.weight[0]=Cp;
+  			subparam.weight[1]=Cn;
+! 			struct svm_model *submodel = svm_train(&subprob,&subparam,NULL);
+  			for(j=begin;j<end;j++)
+  			{
+  				svm_predict_values(submodel,prob->x[perm[j]],&(dec_values[perm[j]])); 
+***************
+*** 2071,2082 ****
+  //
+  // Interface functions
+  //
+! svm_model *svm_train(const svm_problem *prob, const svm_parameter *param)
+  {
+  	svm_model *model = Malloc(svm_model,1);
+  	model->param = *param;
+  	model->free_sv = 0;	// XXX
+  
+  	if(param->svm_type == ONE_CLASS ||
+  	   param->svm_type == EPSILON_SVR ||
+  	   param->svm_type == NU_SVR)
+--- 2110,2124 ----
+  //
+  // Interface functions
+  //
+! svm_model *svm_train(const svm_problem *prob, const svm_parameter *param, const float *deep_weights)
+  {
+  	svm_model *model = Malloc(svm_model,1);
+  	model->param = *param;
+  	model->free_sv = 0;	// XXX
+  
++ 	if(deep_weights!=NULL)
++ 		weights = deep_weights;
++ 
+  	if(param->svm_type == ONE_CLASS ||
+  	   param->svm_type == EPSILON_SVR ||
+  	   param->svm_type == NU_SVR)
+***************
+*** 2413,2419 ****
+  			subprob.y[k] = prob->y[perm[j]];
+  			++k;
+  		}
+! 		struct svm_model *submodel = svm_train(&subprob,param);
+  		if(param->probability && 
+  		   (param->svm_type == C_SVC || param->svm_type == NU_SVC))
+  		{
+--- 2455,2461 ----
+  			subprob.y[k] = prob->y[perm[j]];
+  			++k;
+  		}
+! 		struct svm_model *submodel = svm_train(&subprob,param, NULL);
+  		if(param->probability && 
+  		   (param->svm_type == C_SVC || param->svm_type == NU_SVC))
+  		{
+diff -cr libsvm-3.14/svm.h libsvm-3.14/svm.h
+*** libsvm-3.14/svm.h	2012-11-16 09:43:53.000000000 -0500
+--- libsvm-3.14/svm.h	2013-05-08 13:33:55.000000000 -0400
+***************
+*** 71,77 ****
+  				/* 0 if svm_model is created by svm_train */
+  };
+  
+! struct svm_model *svm_train(const struct svm_problem *prob, const struct svm_parameter *param);
+  void svm_cross_validation(const struct svm_problem *prob, const struct svm_parameter *param, int nr_fold, double *target);
+  
+  int svm_save_model(const char *model_file_name, const struct svm_model *model);
+--- 71,77 ----
+  				/* 0 if svm_model is created by svm_train */
+  };
+  
+! struct svm_model *svm_train(const struct svm_problem *prob, const struct svm_parameter *param, const float *deep_weights);
+  void svm_cross_validation(const struct svm_problem *prob, const struct svm_parameter *param, int nr_fold, double *target);
+  
+  int svm_save_model(const char *model_file_name, const struct svm_model *model);
+diff -cr libsvm-3.14/svm-train.c libsvm-3.14/svm-train.c
+*** libsvm-3.14/svm-train.c	2012-07-15 07:12:58.000000000 -0400
+--- libsvm-3.14/svm-train.c	2013-05-08 13:33:33.000000000 -0400
+***************
+*** 48,57 ****
+  	exit(1);
+  }
+  
+! void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name);
+! void read_problem(const char *filename);
+  void do_cross_validation();
+  
+  struct svm_parameter param;		// set by parse_command_line
+  struct svm_problem prob;		// set by read_problem
+  struct svm_model *model;
+--- 48,58 ----
+  	exit(1);
+  }
+  
+! void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name, char *weights_file_name);
+! void read_problem(const char *filename, const char *weights_filename);
+  void do_cross_validation();
+  
++ float *deep_weights;                    // set by read_problem
+  struct svm_parameter param;		// set by parse_command_line
+  struct svm_problem prob;		// set by read_problem
+  struct svm_model *model;
+***************
+*** 84,93 ****
+  {
+  	char input_file_name[1024];
+  	char model_file_name[1024];
+  	const char *error_msg;
+  
+! 	parse_command_line(argc, argv, input_file_name, model_file_name);
+! 	read_problem(input_file_name);
+  	error_msg = svm_check_parameter(&prob,&param);
+  
+  	if(error_msg)
+--- 85,95 ----
+  {
+  	char input_file_name[1024];
+  	char model_file_name[1024];
++         char weights_file_name[1024];
+  	const char *error_msg;
+  
+! 	parse_command_line(argc, argv, input_file_name, model_file_name, weights_file_name);
+! 	read_problem(input_file_name, weights_file_name);
+  	error_msg = svm_check_parameter(&prob,&param);
+  
+  	if(error_msg)
+***************
+*** 102,108 ****
+  	}
+  	else
+  	{
+! 		model = svm_train(&prob,&param);
+  		if(svm_save_model(model_file_name,model))
+  		{
+  			fprintf(stderr, "can't save model to file %s\n", model_file_name);
+--- 104,110 ----
+  	}
+  	else
+  	{
+! 		model = svm_train(&prob,&param,deep_weights);
+  		if(svm_save_model(model_file_name,model))
+  		{
+  			fprintf(stderr, "can't save model to file %s\n", model_file_name);
+***************
+*** 115,120 ****
+--- 117,123 ----
+  	free(prob.x);
+  	free(x_space);
+  	free(line);
++         free(deep_weights);
+  
+  	return 0;
+  }
+***************
+*** 158,164 ****
+  	free(target);
+  }
+  
+! void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name)
+  {
+  	int i;
+  	void (*print_func)(const char*) = NULL;	// default printing to stdout
+--- 161,167 ----
+  	free(target);
+  }
+  
+! void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name, char *weights_file_name)
+  {
+  	int i;
+  	void (*print_func)(const char*) = NULL;	// default printing to stdout
+***************
+*** 260,265 ****
+--- 263,271 ----
+  
+  	strcpy(input_file_name, argv[i]);
+  
++         i++;
++         strcpy(weights_file_name, argv[i]);
++ 
+  	if(i<argc-1)
+  		strcpy(model_file_name,argv[i+1]);
+  	else
+***************
+*** 275,286 ****
+  
+  // read in a problem (in svmlight format)
+  
+! void read_problem(const char *filename)
+  {
+  	int elements, max_index, inst_max_index, i, j;
+  	FILE *fp = fopen(filename,"r");
+  	char *endptr;
+  	char *idx, *val, *label;
+  
+  	if(fp == NULL)
+  	{
+--- 281,296 ----
+  
+  // read in a problem (in svmlight format)
+  
+! void read_problem(const char *filename, const char *weights_filename)
+  {
+  	int elements, max_index, inst_max_index, i, j;
+  	FILE *fp = fopen(filename,"r");
+  	char *endptr;
+  	char *idx, *val, *label;
++   
++         FILE *fi;
++         char weight_line[50];
++         float weight;
+  
+  	if(fp == NULL)
+  	{
+***************
+*** 376,379 ****
+--- 386,403 ----
+  		}
+  
+  	fclose(fp);
++ 
++         // read in the weights
++         deep_weights = Malloc(float,prob.l);
++         fi = fopen(weights_filename, "r");
++ 
++         i = 0;
++         while (fgets(weight_line,20,fi) != NULL)
++         {
++                 sscanf(weight_line,"%3f2", &weight);
++                 deep_weights[i] = weight;
++                 i++;
++         }
++ 
++         fclose(fi);
+  }

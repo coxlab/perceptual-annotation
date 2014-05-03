@@ -1,0 +1,13 @@
+--- svmutil.py.orig	2012-07-20 04:13:04.000000000 -0400
++++ svmutil.py	2013-03-29 14:14:20.345454026 -0400
+@@ -245,8 +245,8 @@
+ 	if svm_type in [EPSILON_SVR, NU_SVR]:
+ 		info("Mean squared error = %g (regression)" % MSE)
+ 		info("Squared correlation coefficient = %g (regression)" % SCC)
+-	else:
+-		info("Accuracy = %g%% (%d/%d) (classification)" % (ACC, int(l*ACC/100), l))
++#	else:
++#		info("Accuracy = %g%% (%d/%d) (classification)" % (ACC, int(l*ACC/100), l))
+ 
+ 	return pred_labels, (ACC, MSE, SCC), pred_values
+ 
