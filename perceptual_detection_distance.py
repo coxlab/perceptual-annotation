@@ -313,7 +313,7 @@ def filter(sub_face_resized, m, thresh, feature_y, feature_x, compute_sift):
    return (pos_detection, p_val[0][0]) 
 
 def main():
-   parser = argparse.ArgumentParser(description='Deep Annotation Training Program')
+   parser = argparse.ArgumentParser(description='Perceptual Annotation Training Program')
  
    parser.add_argument('--img_list', action="store", dest="img_list", help="list of image filenames")
    parser.add_argument('--output_dir', action="store", dest="output_dir", help ="output directory")

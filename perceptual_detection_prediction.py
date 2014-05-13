@@ -235,7 +235,7 @@ def gen_coxlab_features(chip_resized, feature_x, feature_y):
    return image_vector
 
 def main():
-   parser = argparse.ArgumentParser(description='Deep Annotation Training Program')
+   parser = argparse.ArgumentParser(description='Perceptual Annotation Training Program')
  
    parser.add_argument('--img_list', action="store", dest="img_list", help="list of image filenames")
    parser.add_argument('--output_dir', action="store", dest="output_dir", help ="output directory")
