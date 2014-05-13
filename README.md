@@ -148,5 +148,7 @@ Citing this Code
 If you use this code in your own work, please cite the following paper:
 
 "Perceptual Annotation: Measuring Human Vision to Improve Computer Vision,"
-Walter Scheirer, Samuel E. Anthony, Ken Nakayama, David D. Cox
+Walter Scheirer, Samuel E. Anthony, Ken Nakayama, David D. Cox,
 IEEE Transactions on Pattern Analysis and Machine Intelligence (T-PAMI), 2014.
+
+http://www.coxlab.org/pdfs/2014_scheirer_tpami.pdf
