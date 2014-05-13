@@ -1,4 +1,10 @@
 #!/usr/bin/python
+#
+# Face Detector with Perceptual Annotation 
+#
+# - Process a data set
+# - Select different features and normalizations
+# - Produce output that can be scored by FDDB scoring routines 
 
 import cv2
 import sys
