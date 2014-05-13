@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Deep Annotation Feature Generation Program
+# Perceptual Annotation Feature Generation Program
 #
 # - Process specific data sets and tmb data
 # - Select different features and normalizations
