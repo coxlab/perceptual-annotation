@@ -151,4 +151,4 @@ If you use this code in your own work, please cite the following paper:
 Walter Scheirer, Samuel E. Anthony, Ken Nakayama, David D. Cox,
 IEEE Transactions on Pattern Analysis and Machine Intelligence (T-PAMI), 2014.
 
-http://www.coxlab.org/pdfs/2014_scheirer_tpami.pdf
+Link to paper: http://www.coxlab.org/pdfs/2014_scheirer_tpami.pdf
