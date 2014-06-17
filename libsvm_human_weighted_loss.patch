@@ -103,7 +103,7 @@
 +        i = 0;
 +        while (fgets(weight_line,20,fi) != NULL)
 +        {
-+                sscanf(weight_line,"%3f2", &weight);
++                sscanf(weight_line,"%f", &weight);
 +                deep_weights[i] = weight;
 +                i++;
 +        }
