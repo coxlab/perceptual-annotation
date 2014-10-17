@@ -51,7 +51,9 @@ Download and build libsvm. It's kept locally for now, as we will make a few modi
     $ gzip -cd libsvm-3.14.tar.gz | tar xvf -
     $ cd libsvm-3.14
     $ patch < ../libsvm_human_weighted_loss.patch
+    $ cd python
     $ patch < ../../libsvm_svmutil.py.patch
+    $ cd ..
     $ make ; cd python; make
 
 Download vlfeat. It will be necessary to generate SIFT features:
