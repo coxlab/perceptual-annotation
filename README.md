@@ -107,22 +107,22 @@ perceptual_detection_training.py generates features to train models from. It has
 Sample commands:
 
     Generate Dense SIFT Features for FDDB Data:
-    python perceptual_detection_training_git_validate.py --fddb --img_list FDDB/FDDB-folds/FDDB-fold-01-full-path.txt --gt FDDB/FDDB-folds/FDDB-fold-01-ellipseList.txt --output validation.features --size 30x30 --num_face 100 --histeq --sift
+    python perceptual_detection_training.py --fddb --img_list FDDB/FDDB-folds/FDDB-fold-01-full-path.txt --gt FDDB/FDDB-folds/FDDB-fold-01-ellipseList.txt --output validation.features --size 30x30 --num_face 100 --histeq --sift
 
     Generate Biologically-Inspired Features for FDDB Data:
-    python perceptual_detection_training_git_validate.py --fddb --img_list FDDB/FDDB-folds/FDDB-fold-01-full-path.txt --gt FDDB/FDDB-folds/FDDB-fold-01-ellipseList.txt --output validation.features --size 30x30 --num_face 100 --histeq --coxlab
+    python perceptual_detection_training.py --fddb --img_list FDDB/FDDB-folds/FDDB-fold-01-full-path.txt --gt FDDB/FDDB-folds/FDDB-fold-01-ellipseList.txt --output validation.features --size 30x30 --num_face 100 --histeq --coxlab
 
     Generate Dense SIFT Features for Portilla-Simoncelli TMB Data:
-    python perceptual_detection_training_git_validate.py --sift --output validation. --size 30x30 --num_face 100 --histeq --tmb_images tmb/simo-files --tmb_chips portilla_simoncelli/tmb_simoncelli_chip_sizes --simo
+    python perceptual_detection_training.py --sift --output validation. --size 30x30 --num_face 100 --histeq --tmb_images tmb/simo-files --tmb_chips portilla_simoncelli/tmb_simoncelli_chip_sizes --simo
 
     Generate Biologically-Inspired Features for Portilla-Simoncelli TMB Data:
-    python perceptual_detection_training_git_validate.py --fddb --img_list FDDB/FDDB-folds/FDDB-fold-01-full-path.txt --gt FDDB/FDDB-folds/FDDB-fold-01-ellipseList.txt --output validation. --size 30x30 --num_face 100 --histeq --coxlab
+    python perceptual_detection_training.py --fddb --img_list FDDB/FDDB-folds/FDDB-fold-01-full-path.txt --gt FDDB/FDDB-folds/FDDB-fold-01-ellipseList.txt --output validation. --size 30x30 --num_face 100 --histeq --coxlab
 
     Generate Dense SIFT Features for AFLW TMB Data:
-    python perceptual_detection_training_git_validate.py --sift --output validation. --size 30x30 --num_face 100 --histeq --tmb_images aflw/aflw_files  --aflw
+    python perceptual_detection_training.py --sift --output validation. --size 30x30 --num_face 100 --histeq --tmb_images aflw/aflw_files  --aflw
 
     Generate Biologically-Inspired Features for AFLW TMB Data:
-    python perceptual_detection_training_git_validate.py --aflw --output validation. --size 30x30 --num_face 100 --histeq --tmb_images aflw/aflw_files --coxlab
+    python perceptual_detection_training.py --aflw --output validation. --size 30x30 --num_face 100 --histeq --tmb_images aflw/aflw_files --coxlab
 
 perceptual_detection_prediction.py is the face detection code. It also has many options:
 
