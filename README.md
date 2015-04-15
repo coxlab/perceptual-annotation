@@ -60,7 +60,7 @@ Download vlfeat. It will be necessary to generate SIFT features:
 
     $ cd perceptual-annotation/features
     $ wget http://www.vlfeat.org/download/vlfeat-0.9.16-bin.tar.gz
-    $ gzip -cd libsvm-3.14.tar.gz | tar xvf -
+    $ gzip -cd vlfeat-0.9.16-bin.tar.gz | tar xvf -
 
     Create a symlink to the sift binary for your platform:
     Example: $ ln -s ./vlfeat-0.9.16/bin/glnx86/sift sift
